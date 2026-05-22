@@ -1,6 +1,6 @@
 services:
   github-release-exporter:
-    image: ghcr.io/your-org-or-user/go-github-release-exporter:dev
+    image: ghcr.io/grotax/go-github-release-exporter:dev
     container_name: github-release-exporter
     ports:
       - "9101:9101"
@@ -9,8 +9,8 @@ services:
       EXPORTER_METRICS_PATH: "/metrics"
       EXPORTER_LOG_LEVEL: "info"
       GITHUB_TOKEN: ""
-      GITHUB_OWNER: "your-org-or-user"
-      GITHUB_REPO: "your-repo"
+      GITHUB_OWNER: "nextcloud"
+      GITHUB_REPO: "news"
       GITHUB_RELEASE_LIMIT: "0"
       GITHUB_CACHE_TTL: "5m"
       GITHUB_HTTP_TIMEOUT: "15s"

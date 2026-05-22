@@ -34,6 +34,7 @@ type GitHubReleasesCollectorConfig struct {
 type releaseAssetDownload struct {
 	ReleaseTitle  string
 	ReleaseTag    string
+	PublishedUnix float64
 	AssetName     string
 	DownloadCount float64
 }
@@ -44,9 +45,10 @@ type cacheSnapshot struct {
 }
 
 type githubRelease struct {
-	Name    string `json:"name"`
-	TagName string `json:"tag_name"`
-	Assets  []struct {
+	Name        string `json:"name"`
+	TagName     string `json:"tag_name"`
+	PublishedAt string `json:"published_at"`
+	Assets      []struct {
 		Name          string `json:"name"`
 		DownloadCount int64  `json:"download_count"`
 	} `json:"assets"`
@@ -61,6 +63,7 @@ type GitHubReleasesCollector struct {
 	cache  cacheSnapshot
 
 	downloadCountDesc *prometheus.Desc
+	publishedAtDesc   *prometheus.Desc
 	scrapeSuccessDesc *prometheus.Desc
 }
 
@@ -92,6 +95,12 @@ func NewGitHubReleasesCollector(cfg GitHubReleasesCollectorConfig, logger *slog.
 			[]string{"owner", "repo", "release_title", "release_tag", "artifact_name"},
 			nil,
 		),
+		publishedAtDesc: prometheus.NewDesc(
+			"github_release_published_timestamp_seconds",
+			"Release publish timestamp as Unix seconds.",
+			[]string{"owner", "repo", "release_title", "release_tag"},
+			nil,
+		),
 		scrapeSuccessDesc: prometheus.NewDesc(
 			"github_release_asset_download_scrape_success",
 			"Whether the last scrape of GitHub releases was successful (1=success, 0=error).",
@@ -104,6 +113,7 @@ func NewGitHubReleasesCollector(cfg GitHubReleasesCollectorConfig, logger *slog.
 // Describe sends metric descriptors to Prometheus.
 func (c *GitHubReleasesCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.downloadCountDesc
+	ch <- c.publishedAtDesc
 	ch <- c.scrapeSuccessDesc
 }
 
@@ -126,6 +136,29 @@ func (c *GitHubReleasesCollector) Collect(ch chan<- prometheus.Metric) {
 			e.ReleaseTitle,
 			e.ReleaseTag,
 			e.AssetName,
+		)
+	}
+
+	releasePublished := make(map[string]releaseAssetDownload)
+	for _, e := range entries {
+		key := e.ReleaseTag + "\x00" + e.ReleaseTitle
+		if _, exists := releasePublished[key]; !exists {
+			releasePublished[key] = e
+		}
+	}
+
+	for _, e := range releasePublished {
+		if e.PublishedUnix <= 0 {
+			continue
+		}
+		ch <- prometheus.MustNewConstMetric(
+			c.publishedAtDesc,
+			prometheus.GaugeValue,
+			e.PublishedUnix,
+			c.cfg.Owner,
+			c.cfg.Repo,
+			e.ReleaseTitle,
+			e.ReleaseTag,
 		)
 	}
 
@@ -157,6 +190,7 @@ func (c *GitHubReleasesCollector) loadReleaseAssets() ([]releaseAssetDownload, e
 	for _, release := range releases {
 		releaseTitle := strings.TrimSpace(release.Name)
 		releaseTag := strings.TrimSpace(release.TagName)
+		publishedUnix := parsePublishedUnix(release.PublishedAt)
 		if releaseTitle == "" {
 			releaseTitle = releaseTag
 		}
@@ -164,6 +198,7 @@ func (c *GitHubReleasesCollector) loadReleaseAssets() ([]releaseAssetDownload, e
 			entries = append(entries, releaseAssetDownload{
 				ReleaseTitle:  releaseTitle,
 				ReleaseTag:    releaseTag,
+				PublishedUnix: publishedUnix,
 				AssetName:     asset.Name,
 				DownloadCount: float64(asset.DownloadCount),
 			})
@@ -223,6 +258,20 @@ func (c *GitHubReleasesCollector) fetchReleases(ctx context.Context) ([]githubRe
 	}
 
 	return releases, nil
+}
+
+func parsePublishedUnix(raw string) float64 {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0
+	}
+
+	ts, err := time.Parse(time.RFC3339, raw)
+	if err != nil {
+		return 0
+	}
+
+	return float64(ts.Unix())
 }
 
 func (c *GitHubReleasesCollector) fetchReleasePage(ctx context.Context, url string) ([]githubRelease, error) {

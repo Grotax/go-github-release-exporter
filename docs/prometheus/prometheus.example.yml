@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: github_release_exporter
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - localhost:9101

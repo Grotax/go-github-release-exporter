@@ -37,6 +37,51 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
+      "description": "Shows download-count development over time for the newest N releases. Trend needs Prometheus history, so right after adding this metric you may only see little/no history until more scrapes happen.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (release_tag) (github_release_asset_download_count{owner=~\"$owner\",repo=~\"$repo\"}) and on (release_tag) topk($release_series_limit, max by (release_tag) (github_release_published_timestamp_seconds{owner=~\"$owner\",repo=~\"$repo\"}))",
+          "legendFormat": "{{release_tag}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Download Trend by Release (Top N)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -79,7 +124,7 @@
         "h": 5,
         "w": 6,
         "x": 0,
-        "y": 0
+        "y": 8
       },
       "id": 1,
       "options": {
@@ -106,141 +151,6 @@
       ],
       "title": "Scrape Status",
       "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 6,
-        "x": 6,
-        "y": 0
-      },
-      "id": 2,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "sum(github_release_asset_download_count{owner=~\"$owner\",repo=~\"$repo\"})",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Total Downloads",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
-      "id": 3,
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "sum by (release_tag) (github_release_asset_download_count{owner=~\"$owner\",repo=~\"$repo\"})",
-          "legendFormat": "{{release_tag}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Downloads by Release",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "description": "Shows download count development over time for the top N release tags by current total downloads.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 5
-      },
-      "id": 5,
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "sum by (release_tag) (github_release_asset_download_count{owner=~\"$owner\",repo=~\"$repo\"}) and on (release_tag) topk($release_series_limit, max by (release_tag) (github_release_published_timestamp_seconds{owner=~\"$owner\",repo=~\"$repo\"}))",
-          "legendFormat": "{{release_tag}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Download Trend by Release (Top N)",
-      "type": "timeseries"
     },
     {
       "datasource": {

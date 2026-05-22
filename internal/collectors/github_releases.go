@@ -28,6 +28,7 @@ type GitHubReleasesCollectorConfig struct {
 	ReleaseLimit int
 	CacheTTL     time.Duration
 	HTTPTimeout  time.Duration
+	APIBaseURL   string
 }
 
 type releaseAssetDownload struct {
@@ -51,7 +52,7 @@ type githubRelease struct {
 	} `json:"assets"`
 }
 
-// GitHubReleasesCollector is a placeholder for future GitHub release metrics.
+// GitHubReleasesCollector fetches GitHub release asset download counts.
 type GitHubReleasesCollector struct {
 	cfg    GitHubReleasesCollectorConfig
 	client *http.Client
@@ -63,7 +64,7 @@ type GitHubReleasesCollector struct {
 	scrapeSuccessDesc *prometheus.Desc
 }
 
-// NewGitHubReleasesCollector creates an empty collector skeleton.
+// NewGitHubReleasesCollector creates a GitHub release collector.
 func NewGitHubReleasesCollector(cfg GitHubReleasesCollectorConfig, logger *slog.Logger) *GitHubReleasesCollector {
 	if logger == nil {
 		logger = slog.Default()
@@ -75,6 +76,10 @@ func NewGitHubReleasesCollector(cfg GitHubReleasesCollectorConfig, logger *slog.
 
 	if cfg.HTTPTimeout <= 0 {
 		cfg.HTTPTimeout = 15 * time.Second
+	}
+
+	if strings.TrimSpace(cfg.APIBaseURL) == "" {
+		cfg.APIBaseURL = githubAPIBaseURL
 	}
 
 	return &GitHubReleasesCollector{
@@ -187,7 +192,7 @@ func (c *GitHubReleasesCollector) fetchReleases(ctx context.Context) ([]githubRe
 
 		url := fmt.Sprintf(
 			"%s/repos/%s/%s/releases?per_page=%d&page=%d",
-			githubAPIBaseURL,
+			strings.TrimRight(c.cfg.APIBaseURL, "/"),
 			c.cfg.Owner,
 			c.cfg.Repo,
 			releasesPageSize,

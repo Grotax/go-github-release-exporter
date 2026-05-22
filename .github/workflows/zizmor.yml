@@ -1,0 +1,28 @@
+name: Zizmor
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zizmor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor
+        run: |
+          docker run --rm \
+            -v "$PWD":/workdir \
+            -w /workdir \
+            ghcr.io/woodruffw/zizmor:1.7.0 \
+            .github/workflows/*.yml

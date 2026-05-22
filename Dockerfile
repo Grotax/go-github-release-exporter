@@ -28,7 +28,7 @@ FROM alpine:3.21 AS final
 COPY --from=builder /app /bin/app
 
 # Expose the application's port
-EXPOSE 9100
+EXPOSE 9101
 
 # Run the application
-CMD ["bin/app"]
+CMD ["/bin/app"]

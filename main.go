@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"log/slog"
 	"os/signal"
 	"syscall"
 
@@ -14,14 +15,29 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	cfg := exporter.DefaultConfig()
+	cfg, err := exporter.LoadConfigFromEnv()
+	if err != nil {
+		panic(fmt.Errorf("load config: %w", err))
+	}
 
-	srv := exporter.NewServer(cfg)
+	logger := exporter.NewLogger(cfg.LogLevel)
 
-	// Register placeholder collectors here as the project grows.
-	srv.RegisterCollector(collectors.NewGitHubReleasesCollector())
+	srv := exporter.NewServer(cfg, logger)
+
+	if err := srv.RegisterCollector(collectors.NewGitHubReleasesCollector(collectors.GitHubReleasesCollectorConfig{
+		Owner:        cfg.GitHubOwner,
+		Repo:         cfg.GitHubRepo,
+		Token:        cfg.GitHubToken,
+		ReleaseLimit: cfg.GitHubReleaseLimit,
+		CacheTTL:     cfg.GitHubCacheTTL,
+		HTTPTimeout:  cfg.GitHubHTTPTimeout,
+	}, logger)); err != nil {
+		logger.Error("failed to register collector", slog.Any("error", err))
+		panic(fmt.Errorf("register collector: %w", err))
+	}
 
 	if err := srv.Run(ctx); err != nil {
-		log.Fatalf("exporter stopped with error: %v", err)
+		logger.Error("exporter stopped with error", slog.Any("error", err))
+		panic(err)
 	}
 }

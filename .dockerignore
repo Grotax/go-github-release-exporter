@@ -1,0 +1,11 @@
+.git
+.gitignore
+.devcontainer
+.vscode
+bin
+dist
+coverage
+*.log
+*.tmp
+*.swp
+README*

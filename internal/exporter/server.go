@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -17,11 +17,15 @@ type Server struct {
 	cfg      Config
 	registry *prometheus.Registry
 	server   *http.Server
+	logger   *slog.Logger
 }
 
 // NewServer creates an exporter server with an isolated registry.
-func NewServer(cfg Config) *Server {
+func NewServer(cfg Config, logger *slog.Logger) *Server {
 	registry := prometheus.NewRegistry()
+	if logger == nil {
+		logger = NewLogger(slog.LevelInfo)
+	}
 
 	mux := http.NewServeMux()
 	mux.Handle(cfg.MetricsPath, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
@@ -33,6 +37,7 @@ func NewServer(cfg Config) *Server {
 	return &Server{
 		cfg:      cfg,
 		registry: registry,
+		logger:   logger,
 		server: &http.Server{
 			Addr:    cfg.ListenAddress,
 			Handler: mux,
@@ -58,7 +63,7 @@ func (s *Server) Run(ctx context.Context) error {
 	errCh := make(chan error, 1)
 
 	go func() {
-		log.Printf("starting exporter on %s (metrics at %s)", s.cfg.ListenAddress, s.cfg.MetricsPath)
+		s.logger.Info("starting exporter", "listen_address", s.cfg.ListenAddress, "metrics_path", s.cfg.MetricsPath)
 		if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
 			return
@@ -68,6 +73,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
+		s.logger.Info("shutdown signal received")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := s.server.Shutdown(shutdownCtx); err != nil {

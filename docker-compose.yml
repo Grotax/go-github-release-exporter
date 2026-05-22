@@ -1,9 +1,6 @@
 services:
   github-release-exporter:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: go-github-release-exporter:latest
+    image: ghcr.io/your-org-or-user/go-github-release-exporter:dev
     container_name: github-release-exporter
     ports:
       - "9101:9101"

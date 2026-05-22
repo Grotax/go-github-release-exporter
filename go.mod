@@ -1,6 +1,6 @@
 module github.com/grotax/go-github-release-exporter
 
-go 1.23.0
+go 1.26.3
 
 require github.com/prometheus/client_golang v1.23.2
 

@@ -1,5 +1,5 @@
 # Use the official Golang image as the base
-FROM golang:1.26.3-alpine AS builder
+FROM golang:1.26.4-alpine AS builder
 
 # Set environment variables
 ENV CGO_ENABLED=0 \
